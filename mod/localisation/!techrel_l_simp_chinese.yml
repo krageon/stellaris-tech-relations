@@ -1,0 +1,4 @@
+﻿l_simp_chinese:
+  techrel_requires: "£research£ §H需要下列科技§!"
+  techrel_unlocks: "£research£ §H解锁下列科技§!"
+  techrel_one_of: "§H需要以下之一§!"

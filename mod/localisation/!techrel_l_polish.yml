@@ -1,0 +1,4 @@
+﻿l_polish:
+  techrel_requires: "£research£ §HWymaga następujących technologie§!"
+  techrel_unlocks: "£research£ §HOdblokowuje następujące technologie§!"
+  techrel_one_of: "§HMusi posiadać jeden z poniższych§!"
