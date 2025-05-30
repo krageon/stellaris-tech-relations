@@ -1,0 +1,8 @@
+# Rename this file to config.yml
+GameDir: 'C:\Program Files (x86)\Steam\steamapps\common\Stellaris\' # Single-quotes to disable escaping
+ConfigDir: "./cwtools-stellaris-config/config/" # Obtain files from https://github.com/cwtools/cwtools-stellaris-config
+OutDir: "./mod/localisation/replace/"
+ModPaths:
+  - "Path/To/MyMod1/" # Directories must end with '/' or '\'
+  - "Path/To/MyMod2.zip"
+# It is assumed that a mod cannot be located in subdirectories of another
