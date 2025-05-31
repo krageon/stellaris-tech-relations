@@ -4,7 +4,7 @@
 
 ## Prebuilt Release Installation
 
-1. Download zip file from [release page](./releases).
+1. Download zip file from [release page](https://github.com/Clazex/stellaris-tech-relations/releases).
 2. Unpack into the [mod folder](https://stellaris.paradoxwikis.com/Modding#Mod_folder_location).
 
 ## Cloning
