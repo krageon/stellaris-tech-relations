@@ -447,14 +447,14 @@ public class CWComparer(List<WorkspaceDirectoryInput> inputs) : IComparer<CWNode
 
 		int modIndexX = ModIndex(x);
 		int modIndexY = ModIndex(y);
-		return (modIndexX - modIndexY) switch {
-			0 => string.Compare(
+		return string.Compare(
 				x.FileName[ModPaths[modIndexX].Length..],
 				y.FileName[ModPaths[modIndexY].Length..],
 				StringComparison.OrdinalIgnoreCase
-			),
-			int i => i
-		};
+			) switch {
+				0 => modIndexX - modIndexY,
+				int i => i
+			};
 	}
 }
 
