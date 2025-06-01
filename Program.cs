@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Text;
 using System.Reflection;
@@ -20,6 +21,7 @@ using CWNode = CWTools.Process.Node;
 using CWValue = CWTools.Parser.Types.Value;
 using SECData = CWTools.Games.ScriptedEffectComputedData;
 
+Stopwatch timer = Stopwatch.StartNew();
 // Add support for codepage 1252, used by CWTools
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 YamlDeserializer deserializer = new();
@@ -330,6 +332,8 @@ foreach ((string lang, StringDict loc) in generatedLocs) {
 Console.WriteLine($"Wrote {generatedLocs.Count} language files");
 
 #endregion
+
+Console.WriteLine($"Finished in {timer.Elapsed}");
 
 
 #region Data models
