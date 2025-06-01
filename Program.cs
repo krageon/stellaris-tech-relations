@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Text;
 using System.Reflection;
 
@@ -141,10 +141,10 @@ Dictionary<string, Tech> techs = entities
 				.Map(x => x.ToRawString().Equals("yes", StringComparison.OrdinalIgnoreCase))
 				.UnwrapOr(false);
 
-			List<ITechRequirement> requires = i.Child("prerequisites")
+			List<TechRequirement> requires = i.Child("prerequisites")
 				.Map(x => {
 					var list = x.LeafValues
-						.Select(x => new TechRequirementSingle(x.Value.ToRawString()) as ITechRequirement)
+						.Select(x => new TechRequirementSingle(x.Value.ToRawString()) as TechRequirement)
 						.ToList();
 
 					foreach (CWNode clause in x.Children) {
@@ -173,7 +173,7 @@ Dictionary<string, Tech> techs = entities
 	);
 
 foreach ((string id, Tech tech) in techs) {
-	foreach (ITechRequirement requirement in tech.Requires) {
+	foreach (TechRequirement requirement in tech.Requires) {
 		foreach (string req in requirement.Requirements()) {
 			techs[req].Unlocks.Add(id);
 		}
@@ -263,7 +263,7 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 
 			if (tech.Requires.Count > 0) {
 				sb.Append($"\n\n{LocConsts.Requires}");
-				foreach (ITechRequirement require in tech.Requires) {
+				foreach (TechRequirement require in tech.Requires) {
 					if (require is TechRequirementSingle single) {
 						BuildRelatedTechString(single.Id, 1);
 					} else if (require is TechRequirementAlternatives alternatives) {
@@ -355,7 +355,7 @@ public class Tech(
 	int tier,
 	bool dangerous,
 	bool rare,
-	List<ITechRequirement> requires,
+	List<TechRequirement> requires,
 	Dictionary<string, Area> swaps
 ) {
 	public bool Vanilla { get; private init; } = vanilla;
@@ -364,7 +364,7 @@ public class Tech(
 	public bool Dangerous { get; private init; } = dangerous;
 	public bool Rare { get; private init; } = rare;
 
-	public List<ITechRequirement> Requires { get; private init; } = requires;
+	public List<TechRequirement> Requires { get; private init; } = requires;
 	public List<string> Unlocks { get; private init; } = [];
 	public Dictionary<string, Area> Swaps { get; private init; } = swaps;
 }
@@ -375,20 +375,20 @@ public enum Area {
 	Engineering,
 }
 
-public interface ITechRequirement {
-	public IEnumerable<string> Requirements();
+public abstract class TechRequirement {
+	public abstract IEnumerable<string> Requirements();
 }
 
-public class TechRequirementSingle(string id) : ITechRequirement {
+public class TechRequirementSingle(string id) : TechRequirement {
 	public string Id { get; private init; } = id;
 
-	public IEnumerable<string> Requirements() => [Id];
+	public override IEnumerable<string> Requirements() => [Id];
 }
 
-public class TechRequirementAlternatives(IEnumerable<string> alternatives) : ITechRequirement {
-	public string[] Alternatives { get; private init; } = alternatives.ToArray();
+public class TechRequirementAlternatives(IEnumerable<string> alternatives) : TechRequirement {
+	public string[] Alternatives { get; private init; } = [.. alternatives];
 
-	public IEnumerable<string> Requirements() => Alternatives;
+	public override IEnumerable<string> Requirements() => Alternatives;
 }
 
 #endregion
