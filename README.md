@@ -24,7 +24,7 @@ git submodule update --init
 ## Usage
 
 1. Copy `config.example.yml`, rename to `config.yml` and fill the fields.
-2. Run the generator: `dotnet run -c Release` (takes ~1min).
+2. Run the generator: `dotnet run -c Release` (takes ~1min for vanilla).
 3. Create `Tech-Relations.mod` in the mod folder containing the following content:
 
 ```
