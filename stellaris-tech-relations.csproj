@@ -13,6 +13,7 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<DebugType>portable</DebugType>
 		<Deterministic>true</Deterministic>
+		<RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
 
 		<PublishSingleFile>true</PublishSingleFile>
 		<PathMap Condition="$(Configuration) == 'Release'">$(MSBuildProjectDirectory)=./</PathMap>
