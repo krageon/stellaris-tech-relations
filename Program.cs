@@ -136,6 +136,21 @@ Dictionary<string, Tech> techs = entities
 				tier = ((CWValue.Int) variables[tierStr]).Item;
 			}
 
+			int levels = i.Tag("levels")
+				.Map(x => {
+					string str = x.ToRawString();
+					if (!int.TryParse(str, out int levels)) {
+						if (!str.StartsWith('@')) {
+							throw new NotSupportedException($"Unexpected levels value: {str}");
+						}
+
+						levels = ((CWValue.Int) variables[str]).Item;
+					}
+
+					return levels;
+				})
+				.UnwrapOr(1);
+
 			bool dangerous = i.Tag("is_dangerous")
 				.Map(x => x.ToRawString().Equals("yes", StringComparison.OrdinalIgnoreCase))
 				.UnwrapOr(false);
@@ -170,7 +185,7 @@ Dictionary<string, Tech> techs = entities
 					node.Tag("area").Map(x => Enum.Parse<Area>(x.ToRawString(), true)).UnwrapOr(area);
 			}
 
-			return new Tech(vanilla, area, tier, dangerous, rare, requires, swaps);
+			return new Tech(vanilla, area, tier, levels, dangerous, rare, requires, swaps);
 		}
 	);
 
@@ -224,6 +239,12 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 		new StringDict(),
 		(dict, i) => {
 			(string id, Tech tech) = i;
+
+			string repeatableInfo = tech.Levels switch {
+				1 => "",
+				-1 => $"{LocConsts.LParen}{LocConsts.Repeatable}{LocConsts.RParen}",
+				int levels => $"{LocConsts.LParen}{LocConsts.Repeatable}{LocConsts.Times}{levels}{LocConsts.RParen}"
+			};
 
 			StringBuilder sb = new();
 			void BuildRelatedTechString(string techId, int indent) {
@@ -292,7 +313,9 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 				string key = $"{techId}_desc";
 				if (locs[lang].TryGetValue(key, out Lazy<string>? desc)) {
 					dict[key] = desc.Value
-						+ $"\n\n£{area.ToString().ToLowerInvariant()}£ §Y${area.ToString().ToUpperInvariant()}$ T{tech.Tier}§!"
+						+ $"\n\n£{area.ToString().ToLowerInvariant()}£ §Y${area.ToString().ToUpperInvariant()}$ T{tech.Tier}"
+						+ repeatableInfo
+						+ "§!"
 						+ content;
 				}
 			}
@@ -306,6 +329,7 @@ Console.WriteLine($"Generated {generatedLocs.Sum(i => i.Value.Count)} localizati
 
 IYamlSerializer serializer = new YamlSerializerBuilder()
 	.WithDefaultScalarStyle(YamlDotNet.Core.ScalarStyle.DoubleQuoted)
+	.WithNewLine("\n")
 	.Build();
 Encoding utf8bom = new UTF8Encoding(true);
 foreach ((string lang, StringDict loc) in generatedLocs) {
@@ -357,6 +381,7 @@ public class Tech(
 	bool vanilla,
 	Area area,
 	int tier,
+	int levels,
 	bool dangerous,
 	bool rare,
 	List<TechRequirement> requires,
@@ -365,6 +390,7 @@ public class Tech(
 	public bool Vanilla { get; private init; } = vanilla;
 	public Area Area { get; private init; } = area;
 	public int Tier { get; private init; } = tier;
+	public int Levels { get; private init; } = levels;
 	public bool Dangerous { get; private init; } = dangerous;
 	public bool Rare { get; private init; } = rare;
 
@@ -523,17 +549,19 @@ public static class Extensions {
 }
 
 public static class LocConsts {
+	public const string Repeatable = "$techrel_repeatable$";
 	public const string Requires = "$techrel_requires$";
 	public const string Unlocks = "$techrel_unlocks$";
+	public const string OneOf = "$techrel_one_of$";
 
+	public const char Times = '×';
 	public const string Bullet = "$BULLET_POINT$";
-	public const string Mod = "[MOD] ";
+	public const string Mod = "[Mod] ";
 	public const string LParen = " (";
 	public const char RParen = ')';
 	public const string Sep = " | ";
 	public const string Dangerous = "$TECH_IS_DANGEROUS$";
 	public const string Rare = "$TECH_IS_RARE$";
-	public const string OneOf = "$techrel_one_of$";
 }
 
 #endregion

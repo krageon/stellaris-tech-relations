@@ -1,4 +1,5 @@
 ﻿l_german:
+  techrel_repeatable: "Wiederholbare"
   techrel_requires: "£research£ §HErfordert folgende technologien§!"
   techrel_unlocks: "£research£ §HSchaltet folgende technologien frei§!"
   techrel_one_of: "§HMuss eines von haben!"

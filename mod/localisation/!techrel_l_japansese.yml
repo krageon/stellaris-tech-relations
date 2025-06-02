@@ -1,4 +1,5 @@
 ﻿l_japanese:
+  techrel_repeatable: "反復可能"
   techrel_requires: "£research£ §H以下のテクノロジーが必要です§!"
   techrel_unlocks: "£research£ §H以下のテクノロジーをアンロックする§!"
   techrel_one_of: "§Hいずれか一つが必要です§!"

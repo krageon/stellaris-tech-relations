@@ -1,4 +1,5 @@
 ﻿l_russian:
+  techrel_repeatable: "Повторяемая"
   techrel_requires: "£research£ §HТребуются следующие технологии§!"
   techrel_unlocks: "£research£ §HОткрывает следующие технологии§!"
   techrel_one_of: "§HНеобходимо иметь одно из следующего§!"

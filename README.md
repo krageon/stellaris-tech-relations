@@ -1,6 +1,6 @@
 # Stellaris Tech Relations
 
-> Technology localization generator for Stellaris that appends tech tiers and related techs in original description.
+> Technology localization generator for Stellaris that appends tech tiers, repeatable info and related techs in original description.
 
 ## Prebuilt Release Installation
 
