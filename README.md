@@ -15,7 +15,7 @@ Make sure that submodules are initialized when cloning:
 git clone --recurse-submodules
 ```
 
-Or do it while afterwards:
+Or do it afterwards:
 
 ```bash
 git submodule update --init
@@ -28,7 +28,7 @@ git submodule update --init
 3. Create `Tech-Relations.mod` in the mod folder containing the following content:
 
 ```
-name = "Tech Relations"
+name = "Tech Relations (Local)"
 path = "<Project folder>/mod"
 ```
 

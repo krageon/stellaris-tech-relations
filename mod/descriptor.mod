@@ -1,2 +1,2 @@
-name="Tech Relations"
+name="Tech Relations (Local)"
 picture="thumbnail.png"
