@@ -136,6 +136,8 @@ Dictionary<string, Tech> techs = entities
 				tier = ((CWValue.Int) variables[tierStr]).Item;
 			}
 
+			List<string> categories = i.Child("category").Value.LeafValues.Select(i => i.ValueText).ToList();
+
 			int levels = i.Tag("levels")
 				.Map(x => {
 					string str = x.ToRawString();
@@ -185,7 +187,7 @@ Dictionary<string, Tech> techs = entities
 					node.Tag("area").Map(x => Enum.Parse<Area>(x.ToRawString(), true)).UnwrapOr(area);
 			}
 
-			return new Tech(vanilla, area, tier, levels, dangerous, rare, requires, swaps);
+			return new Tech(vanilla, area, tier, categories, levels, dangerous, rare, requires, swaps);
 		}
 	);
 
@@ -240,34 +242,30 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 		(dict, i) => {
 			(string id, Tech tech) = i;
 
-			StringBuilder sb = new($"T{tech.Tier}");
-			if (tech.Dangerous || tech.Rare || tech.Levels != 1) {
-				sb.Append(LocConsts.LParen);
+			StringBuilder sb = new($"T{tech.Tier}{LocConsts.LParen}");
 
-				if (tech.Dangerous) {
-					sb.Append(LocConsts.Dangerous);
-				}
-
-				if (tech.Dangerous && tech.Rare) {
-					sb.Append(LocConsts.Sep);
-				}
-
-				if (tech.Rare) {
-					sb.Append(LocConsts.Rare);
-				}
-
-				if (tech.Levels != 1) {
-					sb.Append(LocConsts.Repeatable);
-					if (tech.Levels != -1) {
-						sb.Append(LocConsts.Times)
-							.Append(tech.Levels);
-					}
-				}
-
-				sb.Append(LocConsts.RParen);
+			sb.Append($"${tech.Categories[0]}$");
+			foreach (string category in tech.Categories.Skip(1)) {
+				sb.Append($"{LocConsts.Sep}${category}$");
 			}
 
-			sb.Append("§!");
+			if (tech.Dangerous) {
+				sb.Append(LocConsts.Sep).Append(LocConsts.Dangerous);
+			}
+
+			if (tech.Rare) {
+				sb.Append(LocConsts.Sep).Append(LocConsts.Rare);
+			}
+
+			if (tech.Levels != 1) {
+				sb.Append(LocConsts.Sep).Append(LocConsts.Repeatable);
+				if (tech.Levels != -1) {
+					sb.Append(LocConsts.Times)
+						.Append(tech.Levels);
+				}
+			}
+
+			sb.Append($"{LocConsts.RParen}§!");
 
 			void BuildRelatedTechString(string techId, int indent) {
 				Tech tech = techs[techId];
@@ -278,16 +276,11 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 				}
 
 				sb.Append($"${LocConsts.Bullet}");
-
 				if (techs[id].Vanilla && !tech.Vanilla) {
 					sb.Append(LocConsts.Mod);
 				}
 
-				sb.Append('£')
-					.Append(tech.Area.ToString().ToLowerInvariant())
-					.Append("£ ['technology:")
-					.Append(techId)
-					.Append("']");
+				sb.Append($"£{tech.Area.ToString().ToLowerInvariant()}£ ['technology:{techId}']");
 			}
 
 			if (tech.Requires.Count > 0) {
@@ -385,6 +378,7 @@ public class Tech(
 	bool vanilla,
 	Area area,
 	int tier,
+	List<string> categories,
 	int levels,
 	bool dangerous,
 	bool rare,
@@ -394,6 +388,8 @@ public class Tech(
 	public bool Vanilla { get; private init; } = vanilla;
 	public Area Area { get; private init; } = area;
 	public int Tier { get; private init; } = tier;
+	public List<string> Categories { get; private init; } = categories;
+
 	public int Levels { get; private init; } = levels;
 	public bool Dangerous { get; private init; } = dangerous;
 	public bool Rare { get; private init; } = rare;
@@ -563,7 +559,7 @@ public static class LocConsts {
 	public const string Mod = "[Mod] ";
 	public const string LParen = " (";
 	public const char RParen = ')';
-	public const string Sep = " | ";
+	public const char Sep = ' ';
 	public const string Dangerous = "$TECH_IS_DANGEROUS$";
 	public const string Rare = "$TECH_IS_RARE$";
 }
