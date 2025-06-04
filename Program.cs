@@ -283,7 +283,9 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 					sb.Append(LocConsts.Mod);
 				}
 
-				sb.Append("['technology:")
+				sb.Append('£')
+					.Append(tech.Area.ToString().ToLowerInvariant())
+					.Append("£ ['technology:")
 					.Append(techId)
 					.Append("']");
 			}
