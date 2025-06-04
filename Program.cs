@@ -240,13 +240,35 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 		(dict, i) => {
 			(string id, Tech tech) = i;
 
-			string repeatableInfo = tech.Levels switch {
-				1 => "",
-				-1 => $"{LocConsts.LParen}{LocConsts.Repeatable}{LocConsts.RParen}",
-				int levels => $"{LocConsts.LParen}{LocConsts.Repeatable}{LocConsts.Times}{levels}{LocConsts.RParen}"
-			};
+			StringBuilder sb = new($"T{tech.Tier}");
+			if (tech.Dangerous || tech.Rare || tech.Levels != 1) {
+				sb.Append(LocConsts.LParen);
 
-			StringBuilder sb = new();
+				if (tech.Dangerous) {
+					sb.Append(LocConsts.Dangerous);
+				}
+
+				if (tech.Dangerous && tech.Rare) {
+					sb.Append(LocConsts.Sep);
+				}
+
+				if (tech.Rare) {
+					sb.Append(LocConsts.Rare);
+				}
+
+				if (tech.Levels != 1) {
+					sb.Append(LocConsts.Repeatable);
+					if (tech.Levels != -1) {
+						sb.Append(LocConsts.Times)
+							.Append(tech.Levels);
+					}
+				}
+
+				sb.Append(LocConsts.RParen);
+			}
+
+			sb.Append("§!");
+
 			void BuildRelatedTechString(string techId, int indent) {
 				Tech tech = techs[techId];
 
@@ -264,24 +286,6 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 				sb.Append("['technology:")
 					.Append(techId)
 					.Append("']");
-
-				if (tech.Dangerous || tech.Rare) {
-					sb.Append(LocConsts.LParen);
-
-					if (tech.Dangerous) {
-						sb.Append(LocConsts.Dangerous);
-					}
-
-					if (tech.Dangerous && tech.Rare) {
-						sb.Append(LocConsts.Sep);
-					}
-
-					if (tech.Rare) {
-						sb.Append(LocConsts.Rare);
-					}
-
-					sb.Append(LocConsts.RParen);
-				}
 			}
 
 			if (tech.Requires.Count > 0) {
@@ -313,9 +317,7 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 				string key = $"{techId}_desc";
 				if (locs[lang].TryGetValue(key, out Lazy<string>? desc)) {
 					dict[key] = desc.Value
-						+ $"\n\n£{area.ToString().ToLowerInvariant()}£ §Y${area.ToString().ToUpperInvariant()}$ T{tech.Tier}"
-						+ repeatableInfo
-						+ "§!"
+						+ $"\n\n£{area.ToString().ToLowerInvariant()}£ §Y${area.ToString().ToUpperInvariant()}$ "
 						+ content;
 				}
 			}
