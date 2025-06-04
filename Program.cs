@@ -310,9 +310,13 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 
 			foreach ((string techId, Area area) in tech.Swaps.Prepend(new(id, tech.Area))) {
 				string key = $"{techId}_desc";
-				if (locs[lang].TryGetValue(key, out Lazy<string>? desc)) {
+				if (
+					locs[lang].TryGetValue(key, out Lazy<string>? desc)
+					&& desc.Value != $"${id}_desc$"
+				) {
 					dict[key] = desc.Value
-						+ $"\n\n£{area.ToString().ToLowerInvariant()}£ §Y${area.ToString().ToUpperInvariant()}$ "
+						+ $"\n\n£{area.ToString().ToLowerInvariant()}£"
+						+ $" §Y${area.ToString().ToUpperInvariant()}$ "
 						+ content;
 				}
 			}
