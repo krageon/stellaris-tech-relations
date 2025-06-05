@@ -235,6 +235,8 @@ Console.WriteLine("Loaded localization");
 
 #region Emit localizations
 
+HashSet<string> allTechIds = [.. techs.SelectMany(i => i.Value.Swaps.Keys.Prepend(i.Key))];
+
 Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDictionary(
 	lang => lang.LangId(),
 	lang => techs.Aggregate(
@@ -310,11 +312,24 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 
 			foreach ((string techId, Area area) in tech.Swaps.Prepend(new(id, tech.Area))) {
 				string key = $"{techId}_desc";
-				if (
-					locs[lang].TryGetValue(key, out Lazy<string>? desc)
-					&& desc.Value != $"${id}_desc$"
-				) {
-					dict[key] = desc.Value
+				if (locs[lang].TryGetValue(key, out Lazy<string>? desc)) {
+					string descVal = desc.Value;
+
+					// Resolve reference to another tech's description
+					if (
+						descVal.StartsWith('$')
+						&& descVal.EndsWith("_desc$", StringComparison.OrdinalIgnoreCase)
+					) {
+						string referencedId = descVal[1..^"_desc$".Length];
+						if (
+							allTechIds.Contains(referencedId)
+							&& locs[lang].TryGetValue($"{referencedId}_desc", out Lazy<string>? refDesc)
+						) {
+							descVal = refDesc.Value;
+						}
+					}
+
+					dict[key] = descVal
 						+ $"\n\n£{area.ToString().ToLowerInvariant()}£"
 						+ $" §Y${area.ToString().ToUpperInvariant()}$ "
 						+ content;
