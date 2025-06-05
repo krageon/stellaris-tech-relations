@@ -123,72 +123,7 @@ Dictionary<string, Tech> techs = entities
 	.SelectMany(i => i.Children)
 	.ToDictionaryOverwriting(
 		i => i.Key,
-		i => {
-			bool vanilla = cwComparer.IsVanilla(i.Position);
-			Area area = Enum.Parse<Area>(i.Tag("area").Value.ToRawString(), true);
-
-			string tierStr = i.Tag("tier").Value.ToRawString();
-			if (!int.TryParse(tierStr, out int tier)) {
-				if (!tierStr.StartsWith('@')) {
-					throw new NotSupportedException($"Unexpected tier value: {tierStr}");
-				}
-
-				tier = ((CWValue.Int) variables[tierStr]).Item;
-			}
-
-			List<string> categories = i.Child("category").Value.LeafValues.Select(i => i.ValueText).ToList();
-
-			int levels = i.Tag("levels")
-				.Map(x => {
-					string str = x.ToRawString();
-					if (!int.TryParse(str, out int levels)) {
-						if (!str.StartsWith('@')) {
-							throw new NotSupportedException($"Unexpected levels value: {str}");
-						}
-
-						levels = ((CWValue.Int) variables[str]).Item;
-					}
-
-					return levels;
-				})
-				.UnwrapOr(1);
-
-			bool dangerous = i.Tag("is_dangerous")
-				.Map(x => x.ToRawString().Equals("yes", StringComparison.OrdinalIgnoreCase))
-				.UnwrapOr(false);
-			bool rare = i.Tag("is_rare")
-				.Map(x => x.ToRawString().Equals("yes", StringComparison.OrdinalIgnoreCase))
-				.UnwrapOr(false);
-
-			List<TechRequirement> requires = i.Child("prerequisites")
-				.Map(x => {
-					var list = x.LeafValues
-						.Select(x => new TechRequirementSingle(x.Value.ToRawString()) as TechRequirement)
-						.ToList();
-
-					foreach (CWNode clause in x.Children) {
-						if (!string.Equals(clause.Key, "OR", StringComparison.OrdinalIgnoreCase)) {
-							throw new NotSupportedException();
-						}
-
-						list.Add(new TechRequirementAlternatives(
-							clause.LeafValues.Select(i => i.Value.ToRawString())
-						));
-					}
-
-					return list;
-				})
-				.UnwrapOr([]);
-
-
-			Dictionary<string, Area> swaps = [];
-			foreach (CWNode node in i.Childs("technology_swap")) {
-				swaps[node.Tag("name").Value.ToRawString()] =
-					node.Tag("area").Map(x => Enum.Parse<Area>(x.ToRawString(), true)).UnwrapOr(area);
-			}
-
-			return new Tech(vanilla, area, tier, categories, levels, dangerous, rare, requires, swaps);
-		}
+		i => Tech.Parse(i, cwComparer, variables)
 	);
 
 foreach ((string id, Tech tech) in techs) {
@@ -244,12 +179,7 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 		(dict, i) => {
 			(string id, Tech tech) = i;
 
-			StringBuilder sb = new($"T{tech.Tier}{LocConsts.LParen}");
-
-			sb.Append($"${tech.Categories[0]}$");
-			foreach (string category in tech.Categories.Skip(1)) {
-				sb.Append($"{LocConsts.Sep}${category}$");
-			}
+			StringBuilder sb = new();
 
 			if (tech.Dangerous) {
 				sb.Append(LocConsts.Sep).Append(LocConsts.Dangerous);
@@ -310,7 +240,7 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 
 			string content = sb.ToString();
 
-			foreach ((string techId, Area area) in tech.Swaps.Prepend(new(id, tech.Area))) {
+			foreach ((string techId, TechSwap techEntry) in tech.Swaps.Prepend(new(id, tech.AsSwap()))) {
 				string key = $"{techId}_desc";
 				if (locs[lang].TryGetValue(key, out Lazy<string>? desc)) {
 					string descVal = desc.Value;
@@ -330,8 +260,10 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 					}
 
 					dict[key] = descVal
-						+ $"\n\n£{area.ToString().ToLowerInvariant()}£"
-						+ $" §Y${area.ToString().ToUpperInvariant()}$ "
+						+ $"\n\n£{techEntry.Area.ToString().ToLowerInvariant()}£"
+						+ $" §Y${techEntry.Area.ToString().ToUpperInvariant()}$ "
+						+ $"T{tech.Tier}{LocConsts.LParen}"
+						+ techEntry.Categories.Select(i => $"${i}$").ToArray().Join(LocConsts.Sep)
 						+ content;
 				}
 			}
@@ -402,7 +334,7 @@ public class Tech(
 	bool dangerous,
 	bool rare,
 	List<TechRequirement> requires,
-	Dictionary<string, Area> swaps
+	Dictionary<string, TechSwap> swaps
 ) {
 	public bool Vanilla { get; private init; } = vanilla;
 	public Area Area { get; private init; } = area;
@@ -415,7 +347,91 @@ public class Tech(
 
 	public List<TechRequirement> Requires { get; private init; } = requires;
 	public List<string> Unlocks { get; private init; } = [];
-	public Dictionary<string, Area> Swaps { get; private init; } = swaps;
+	public Dictionary<string, TechSwap> Swaps { get; private init; } = swaps;
+
+	public TechSwap AsSwap() => new(Vanilla, Area, Categories);
+
+	public static Tech Parse(CWNode node, CWComparer cwComparer, Dictionary<string, CWValue> variables) {
+		bool vanilla = cwComparer.IsVanilla(node.Position);
+		Area area = Enum.Parse<Area>(node.Tag("area").Value.ToRawString(), true);
+
+		string tierStr = node.Tag("tier").Value.ToRawString();
+		if (!int.TryParse(tierStr, out int tier)) {
+			if (!tierStr.StartsWith('@')) {
+				throw new NotSupportedException($"Unexpected tier value: {tierStr}");
+			}
+
+			tier = ((CWValue.Int) variables[tierStr]).Item;
+		}
+
+		List<string> categories = [.. node.Child("category").Value.LeafValues.Select(i => i.ValueText)];
+
+		int levels = node.Tag("levels")
+			.Map(x => {
+				string str = x.ToRawString();
+				if (!int.TryParse(str, out int levels)) {
+					if (!str.StartsWith('@')) {
+						throw new NotSupportedException($"Unexpected levels value: {str}");
+					}
+
+					levels = ((CWValue.Int) variables[str]).Item;
+				}
+
+				return levels;
+			})
+			.UnwrapOr(1);
+
+		bool dangerous = node.Tag("is_dangerous")
+			.Map(x => x.ToRawString().Equals("yes", StringComparison.OrdinalIgnoreCase))
+			.UnwrapOr(false);
+		bool rare = node.Tag("is_rare")
+			.Map(x => x.ToRawString().Equals("yes", StringComparison.OrdinalIgnoreCase))
+			.UnwrapOr(false);
+
+		List<TechRequirement> requires = node.Child("prerequisites")
+			.Map(x => {
+				var list = x.LeafValues
+					.Select(x => new TechRequirementSingle(x.Value.ToRawString()) as TechRequirement)
+					.ToList();
+
+				foreach (CWNode clause in x.Children) {
+					if (!string.Equals(clause.Key, "OR", StringComparison.OrdinalIgnoreCase)) {
+						throw new NotSupportedException();
+					}
+
+					list.Add(new TechRequirementAlternatives(
+						clause.LeafValues.Select(i => i.Value.ToRawString())
+					));
+				}
+
+				return list;
+			})
+			.UnwrapOr([]);
+
+		Tech tech = new(vanilla, area, tier, categories, levels, dangerous, rare, requires, []);
+		foreach (CWNode swapNode in node.Childs("technology_swap")) {
+			tech.Swaps[swapNode.Tag("name").Value.ToRawString()]
+				= TechSwap.Parse(swapNode, cwComparer, tech);
+		}
+
+		return tech;
+	}
+}
+
+public class TechSwap(
+	bool vanilla,
+	Area area,
+	List<string> categories
+) {
+	public bool Vanilla { get; private init; } = vanilla;
+	public Area Area { get; private init; } = area;
+	public List<string> Categories { get; private init; } = categories;
+
+	public static TechSwap Parse(CWNode node, CWComparer cwComparer, Tech parent) => new(
+		cwComparer.IsVanilla(node.Position),
+		node.Tag("area").Map(x => Enum.Parse<Area>(x.ToRawString(), true)).UnwrapOr(parent.Area),
+		node.Child("category").Map(x => x.LeafValues.Select(i => i.ValueText).ToList()).UnwrapOr(parent.Categories)
+	);
 }
 
 public enum Area {
@@ -537,6 +553,12 @@ public static class Extensions {
 		List<T> list = [.. self];
 		list.Sort(comparison);
 		return list;
+	}
+
+	public static string Join(this string[] self, char separator) {
+		StringBuilder sb = new();
+		sb.AppendJoin(separator, self);
+		return sb.ToString();
 	}
 
 	public static FSharpOption<TTo> Map<T, TTo>(this FSharpOption<T> self, Func<T, TTo> mapper) =>
