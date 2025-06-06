@@ -238,33 +238,38 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 				}
 			}
 
-			string content = sb.ToString();
+			string attrs = sb.ToString();
+			string key = $"{id}_desc";
 
-			foreach ((string techId, TechSwap techEntry) in tech.Swaps.Prepend(new(id, tech.AsSwap()))) {
-				string key = $"{techId}_desc";
-				if (locs[lang].TryGetValue(key, out Lazy<string>? desc)) {
-					string descVal = desc.Value;
+			foreach ((string swapId, TechSwap swapTech) in tech.Swaps.Prepend(new(id, tech.AsSwap()))) {
+				string swapKey = $"{swapId}_desc";
+				string value = $"\n\n£{swapTech.Area.ToString().ToLowerInvariant()}£"
+					+ $" §Y${swapTech.Area.ToString().ToUpperInvariant()}$ "
+					+ $"T{tech.Tier}{LocConsts.LParen}"
+					+ swapTech.Categories.Select(i => $"${i}$").ToArray().Join(LocConsts.Sep)
+					+ attrs;
 
-					// Resolve reference to another tech's description
+				if (!locs[lang].TryGetValue(swapKey, out Lazy<string>? desc)) {
+					desc = locs[lang][key];
+				}
+
+				string descVal = desc.Value;
+				if ( // Resolve reference to another tech's description
+					descVal.StartsWith('$')
+					&& descVal.EndsWith("_desc$", StringComparison.OrdinalIgnoreCase)
+				) {
+					string referencedId = descVal[1..^"_desc$".Length];
 					if (
-						descVal.StartsWith('$')
-						&& descVal.EndsWith("_desc$", StringComparison.OrdinalIgnoreCase)
+						allTechIds.Contains(referencedId)
+						&& locs[lang].TryGetValue($"{referencedId}_desc", out Lazy<string>? refDesc)
 					) {
-						string referencedId = descVal[1..^"_desc$".Length];
-						if (
-							allTechIds.Contains(referencedId)
-							&& locs[lang].TryGetValue($"{referencedId}_desc", out Lazy<string>? refDesc)
-						) {
-							descVal = refDesc.Value;
-						}
+						descVal = refDesc.Value;
 					}
+				}
 
-					dict[key] = descVal
-						+ $"\n\n£{techEntry.Area.ToString().ToLowerInvariant()}£"
-						+ $" §Y${techEntry.Area.ToString().ToUpperInvariant()}$ "
-						+ $"T{tech.Tier}{LocConsts.LParen}"
-						+ techEntry.Categories.Select(i => $"${i}$").ToArray().Join(LocConsts.Sep)
-						+ content;
+				string finalValue = descVal + value;
+				if (!dict.TryGetValue(key, out string? origValue) || origValue != finalValue) {
+					dict[swapKey] = finalValue;
 				}
 			}
 
