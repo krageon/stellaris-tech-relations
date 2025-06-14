@@ -172,116 +172,113 @@ Console.WriteLine("Loaded localization");
 #region Emit localizations
 
 HashSet<string> allTechIds = [.. techs.SelectMany(i => i.Value.Swaps.Keys.Prepend(i.Key))];
-
 Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDictionary(
-	lang => lang.LangId(),
-	lang => techs.Aggregate(
-		new StringDict(),
-		(dict, i) => {
-			(string id, Tech tech) = i;
-
-			StringBuilder sb = new();
-
-			if (tech.Dangerous) {
-				sb.Append(LocConsts.Sep).Append(LocConsts.Dangerous);
-			}
-
-			if (tech.Rare) {
-				sb.Append(LocConsts.Sep).Append(LocConsts.Rare);
-			}
-
-			if (tech.Levels != 1) {
-				sb.Append(LocConsts.Sep).Append(LocConsts.Repeatable);
-				if (tech.Levels != -1) {
-					sb.Append(LocConsts.Times)
-						.Append(tech.Levels);
-				}
-			}
-
-			sb.Append($"{LocConsts.RParen}§!");
-
-			void BuildRelatedTechString(string techId, int indent) {
-				Tech tech = techs[techId];
-
-				sb.Append("\n$");
-				for (int i = 0; i < indent; i++) {
-					sb.Append('t');
-				}
-
-				sb.Append($"${LocConsts.Bullet}");
-				if (techs[id].Vanilla && !tech.Vanilla) {
-					sb.Append(LocConsts.Mod);
-				}
-
-				sb.Append($"£{tech.Area.ToString().ToLowerInvariant()}£ ['technology:{techId}']");
-			}
-
-			if (tech.Requires.Count > 0) {
-				sb.Append($"\n\n{LocConsts.Requires}");
-				foreach (TechRequirement require in tech.Requires) {
-					if (require is TechRequirementSingle single) {
-						BuildRelatedTechString(single.Id, 1);
-					} else if (require is TechRequirementAlternatives alternatives) {
-						sb.Append($"\n$t${LocConsts.Bullet}{LocConsts.OneOf}");
-						foreach (string alternative in alternatives.Alternatives) {
-							BuildRelatedTechString(alternative, 2);
-						}
-					} else {
-						throw new NotSupportedException();
-					}
-				}
-			}
-
-			if (tech.Unlocks.Count > 0) {
-				sb.Append($"\n\n{LocConsts.Unlocks}");
-				foreach (string unlock in tech.Unlocks) {
-					BuildRelatedTechString(unlock, 1);
-				}
-			}
-
-			string content = sb.ToString();
-			string key = $"{id}_desc";
-
-			foreach ((string swapId, TechSwap swapTech) in tech.Swaps.Prepend(new(id, tech.AsSwap()))) {
-				string value = $"\n\n£{swapTech.Area.ToString().ToLowerInvariant()}£"
-						+ $" §Y${swapTech.Area.ToString().ToUpperInvariant()}$ "
-						+ $"T{tech.Tier}{LocConsts.LParen}"
-						+ swapTech.Categories.Select(i => $"${i}$").ToArray().Join(LocConsts.Sep)
-						+ content;
-
-				foreach (string suffix in LocConsts.suffixes) {
-					string swapKey = $"{swapId}_desc{suffix}";
-
-					if (suffix.Length > 0 && !locs[lang].ContainsKey(swapKey)) {
-						continue;
-					}
-
-					if (!locs[lang].TryGetValue(swapKey, out Lazy<string>? desc)) {
-						desc = locs[lang][key];
-					}
-
-					string descVal = desc.Value;
-					Match refMatch = RegexLocReference().Match(desc.Value);
-					if (refMatch.Success) {
-						if (
-							allTechIds.Contains(refMatch.Groups["id"].Value)
-							&& locs[lang].TryGetValue(refMatch.Groups["key"].Value, out Lazy<string>? refDesc)
-						) {
-							descVal = refDesc.Value;
-						}
-					}
-
-					string finalValue = descVal + value;
-					if (!dict.TryGetValue(key, out string? origValue) || origValue != finalValue) {
-						dict[swapKey] = finalValue;
-					}
-				}
-			}
-
-			return dict;
-		}
-	)
+	i => i.LangId(),
+	i => new StringDict()
 );
+
+foreach ((string id, Tech tech) in techs) {
+	StringBuilder sb = new();
+
+	if (tech.Dangerous) {
+		sb.Append(LocConsts.Sep).Append(LocConsts.Dangerous);
+	}
+
+	if (tech.Rare) {
+		sb.Append(LocConsts.Sep).Append(LocConsts.Rare);
+	}
+
+	if (tech.Levels != 1) {
+		sb.Append(LocConsts.Sep).Append(LocConsts.Repeatable);
+		if (tech.Levels != -1) {
+			sb.Append(LocConsts.Times)
+				.Append(tech.Levels);
+		}
+	}
+
+	sb.Append($"{LocConsts.RParen}§!");
+
+	void BuildRelatedTechString(string techId, int indent) {
+		Tech tech = techs[techId];
+
+		sb.Append("\n$");
+		for (int i = 0; i < indent; i++) {
+			sb.Append('t');
+		}
+
+		sb.Append($"${LocConsts.Bullet}");
+		if (techs[id].Vanilla && !tech.Vanilla) {
+			sb.Append(LocConsts.Mod);
+		}
+
+		sb.Append($"£{tech.Area.ToString().ToLowerInvariant()}£ ['technology:{techId}']");
+	}
+
+	if (tech.Requires.Count > 0) {
+		sb.Append($"\n\n{LocConsts.Requires}");
+		foreach (TechRequirement require in tech.Requires) {
+			if (require is TechRequirementSingle single) {
+				BuildRelatedTechString(single.Id, 1);
+			} else if (require is TechRequirementAlternatives alternatives) {
+				sb.Append($"\n$t${LocConsts.Bullet}{LocConsts.OneOf}");
+				foreach (string alternative in alternatives.Alternatives) {
+					BuildRelatedTechString(alternative, 2);
+				}
+			} else {
+				throw new NotSupportedException();
+			}
+		}
+	}
+
+	if (tech.Unlocks.Count > 0) {
+		sb.Append($"\n\n{LocConsts.Unlocks}");
+		foreach (string unlock in tech.Unlocks) {
+			BuildRelatedTechString(unlock, 1);
+		}
+	}
+
+	string content = sb.ToString();
+	string key = $"{id}_desc";
+
+	foreach ((string swapId, TechSwap swapTech) in tech.Swaps.Prepend(new(id, tech.AsSwap()))) {
+		string value = $"\n\n£{swapTech.Area.ToString().ToLowerInvariant()}£"
+				+ $" §Y${swapTech.Area.ToString().ToUpperInvariant()}$ "
+				+ $"T{tech.Tier}{LocConsts.LParen}"
+				+ swapTech.Categories.Select(i => $"${i}$").ToArray().Join(LocConsts.Sep)
+				+ content;
+
+		foreach ((Lang lang, Dictionary<string, Lazy<string>> loc) in locs) {
+			StringDict dict = generatedLocs[lang.LangId()];
+			foreach (string suffix in LocConsts.suffixes) {
+				string swapKey = $"{swapId}_desc{suffix}";
+
+				if (suffix.Length > 0 && !loc.ContainsKey(swapKey)) {
+					continue;
+				}
+
+				if (!loc.TryGetValue(swapKey, out Lazy<string>? desc)) {
+					desc = loc[key];
+				}
+
+				string descVal = desc.Value;
+				Match refMatch = RegexLocReference().Match(desc.Value);
+				if (refMatch.Success) {
+					if (
+						allTechIds.Contains(refMatch.Groups["id"].Value)
+						&& loc.TryGetValue(refMatch.Groups["key"].Value, out Lazy<string>? refDesc)
+					) {
+						descVal = refDesc.Value;
+					}
+				}
+
+				string finalValue = descVal + value;
+				if (!dict.TryGetValue(key, out string? origValue) || origValue != finalValue) {
+					dict[swapKey] = finalValue;
+				}
+			}
+		}
+	}
+}
 
 Console.WriteLine($"Generated {generatedLocs.Sum(i => i.Value.Count)} localization entries");
 
