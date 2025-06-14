@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Reflection;
 
 using Microsoft.FSharp.Collections;
@@ -238,38 +239,42 @@ Dictionary<string, StringDict> generatedLocs = LangHelpers.allSTLLangs.ToDiction
 				}
 			}
 
-			string attrs = sb.ToString();
+			string content = sb.ToString();
 			string key = $"{id}_desc";
 
 			foreach ((string swapId, TechSwap swapTech) in tech.Swaps.Prepend(new(id, tech.AsSwap()))) {
-				string swapKey = $"{swapId}_desc";
 				string value = $"\n\n£{swapTech.Area.ToString().ToLowerInvariant()}£"
-					+ $" §Y${swapTech.Area.ToString().ToUpperInvariant()}$ "
-					+ $"T{tech.Tier}{LocConsts.LParen}"
-					+ swapTech.Categories.Select(i => $"${i}$").ToArray().Join(LocConsts.Sep)
-					+ attrs;
+						+ $" §Y${swapTech.Area.ToString().ToUpperInvariant()}$ "
+						+ $"T{tech.Tier}{LocConsts.LParen}"
+						+ swapTech.Categories.Select(i => $"${i}$").ToArray().Join(LocConsts.Sep)
+						+ content;
 
-				if (!locs[lang].TryGetValue(swapKey, out Lazy<string>? desc)) {
-					desc = locs[lang][key];
-				}
+				foreach (string suffix in LocConsts.suffixes) {
+					string swapKey = $"{swapId}_desc{suffix}";
 
-				string descVal = desc.Value;
-				if ( // Resolve reference to another tech's description
-					descVal.StartsWith('$')
-					&& descVal.EndsWith("_desc$", StringComparison.OrdinalIgnoreCase)
-				) {
-					string referencedId = descVal[1..^"_desc$".Length];
-					if (
-						allTechIds.Contains(referencedId)
-						&& locs[lang].TryGetValue($"{referencedId}_desc", out Lazy<string>? refDesc)
-					) {
-						descVal = refDesc.Value;
+					if (suffix.Length > 0 && !locs[lang].ContainsKey(swapKey)) {
+						continue;
 					}
-				}
 
-				string finalValue = descVal + value;
-				if (!dict.TryGetValue(key, out string? origValue) || origValue != finalValue) {
-					dict[swapKey] = finalValue;
+					if (!locs[lang].TryGetValue(swapKey, out Lazy<string>? desc)) {
+						desc = locs[lang][key];
+					}
+
+					string descVal = desc.Value;
+					Match refMatch = RegexLocReference().Match(desc.Value);
+					if (refMatch.Success) {
+						if (
+							allTechIds.Contains(refMatch.Groups["id"].Value)
+							&& locs[lang].TryGetValue(refMatch.Groups["key"].Value, out Lazy<string>? refDesc)
+						) {
+							descVal = refDesc.Value;
+						}
+					}
+
+					string finalValue = descVal + value;
+					if (!dict.TryGetValue(key, out string? origValue) || origValue != finalValue) {
+						dict[swapKey] = finalValue;
+					}
 				}
 			}
 
@@ -465,6 +470,14 @@ public class TechRequirementAlternatives(IEnumerable<string> alternatives) : Tec
 
 #region Utilities
 
+partial class Program {
+	[GeneratedRegex(
+		@"^\$(?<key>(?<id>.+)_desc(?:|_machine_intelligence|_hive_mind))\$$",
+		RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant
+	)]
+	private static partial Regex RegexLocReference();
+}
+
 public class CWComparer(List<WorkspaceDirectoryInput> inputs) : IComparer<CWNode>, IComparer<CWTools.Localisation.Entry>, IComparer<CWTools.Utilities.Position.range> {
 	public string GamePath { get; private init; } = ((WorkspaceDirectoryInput.WD) inputs[0]).Item.path;
 
@@ -608,6 +621,12 @@ public static class LocConsts {
 	public const char Sep = ' ';
 	public const string Dangerous = "$TECH_IS_DANGEROUS$";
 	public const string Rare = "$TECH_IS_RARE$";
+
+	public static readonly IEnumerable<string> suffixes = [
+		"",
+		"_machine_intelligence",
+		"_hive_mind"
+	];
 }
 
 #endregion
