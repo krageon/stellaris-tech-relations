@@ -469,7 +469,7 @@ public class TechRequirementAlternatives(IEnumerable<string> alternatives) : Tec
 
 partial class Program {
 	[GeneratedRegex(
-		@"^\$(?<key>(?<id>.+)_desc(?:|_machine_intelligence|_hive_mind))\$$",
+		@"^\$(?<key>(?<id>.+)_desc(?:|_(?:machine_intelligence|hive_mind|corporate)))\$$",
 		RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant
 	)]
 	private static partial Regex RegexLocReference();
@@ -622,7 +622,8 @@ public static class LocConsts {
 	public static readonly IEnumerable<string> suffixes = [
 		"",
 		"_machine_intelligence",
-		"_hive_mind"
+		"_hive_mind",
+		"_corporate"
 	];
 }
 
