@@ -117,6 +117,24 @@ Dictionary<string, CWValue> variables = entities
 	.SelectMany(i => i.Leaves)
 	.ToDictionaryOverwriting(i => i.Key, i => i.Value);
 
+List<string> auth_suffixes = entities
+	.AllOfType(STLConstants.EntityType.Authorities)
+	.Select(i => i.Item1)
+	.PipeIf(hasMods, x => x.ToSortedList(cwComparer))
+	.SelectMany(i => i.Children)
+	.Select(i => KeyValuePair.Create(i.Key, i.Tag("localization_postfix")))
+	.Aggregate(
+		new StringDict(),
+		(dict, i) => {
+			if (OptionModule.IsSome(i.Value)) {
+				dict[i.Key] = '_' + i.Value.Value.ToRawString();
+			}
+
+			return dict;
+		},
+		(dict) => dict.Values.Prepend(string.Empty).ToList()
+	);
+
 Dictionary<string, Tech> techs = entities
 	.AllOfType(STLConstants.EntityType.Technology)
 	.Select(i => i.Item1)
@@ -249,7 +267,7 @@ foreach ((string id, Tech tech) in techs) {
 
 		foreach ((Lang lang, Dictionary<string, Lazy<string>> loc) in locs) {
 			StringDict dict = generatedLocs[lang.LangId()];
-			foreach (string suffix in LocConsts.suffixes) {
+			foreach (string suffix in auth_suffixes) {
 				string swapKey = $"{swapId}_desc{suffix}";
 
 				if (suffix.Length > 0 && !loc.ContainsKey(swapKey)) {
@@ -265,6 +283,10 @@ foreach ((string id, Tech tech) in techs) {
 				if (refMatch.Success) {
 					if (
 						allTechIds.Contains(refMatch.Groups["id"].Value)
+						&& (
+							!refMatch.Groups["suffix"].Success
+							|| auth_suffixes.Contains(refMatch.Groups["suffix"].Value)
+						)
 						&& loc.TryGetValue(refMatch.Groups["key"].Value, out Lazy<string>? refDesc)
 					) {
 						descVal = refDesc.Value;
@@ -469,7 +491,7 @@ public class TechRequirementAlternatives(IEnumerable<string> alternatives) : Tec
 
 partial class Program {
 	[GeneratedRegex(
-		@"^\$(?<key>(?<id>.+)_desc(?:|_(?:machine_intelligence|hive_mind|corporate)))\$$",
+		@"^\$(?<key>(?<id>.+)_desc(?<suffix>_.+)?)\$$",
 		RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant
 	)]
 	private static partial Regex RegexLocReference();
@@ -618,13 +640,6 @@ public static class LocConsts {
 	public const char Sep = ' ';
 	public const string Dangerous = "$TECH_IS_DANGEROUS$";
 	public const string Rare = "$TECH_IS_RARE$";
-
-	public static readonly IEnumerable<string> suffixes = [
-		"",
-		"_machine_intelligence",
-		"_hive_mind",
-		"_corporate"
-	];
 }
 
 #endregion
