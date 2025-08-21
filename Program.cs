@@ -159,7 +159,11 @@ Dictionary<string, Tech> techs = entities
 foreach ((string id, Tech tech) in techs) {
 	foreach (TechRequirement requirement in tech.Requires) {
 		foreach (string req in requirement.Requirements()) {
-			techs[req].Unlocks.Add(id);
+			if (techs.TryGetValue(req, out Tech? reqTech)) {
+				reqTech.Unlocks.Add(id);
+			} else {
+				Warn($"Tech {id} has unknown prereq: {req}");
+			}
 		}
 	}
 }
