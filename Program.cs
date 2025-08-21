@@ -22,11 +22,8 @@ using CWNode = CWTools.Process.Node;
 using CWValue = CWTools.Parser.Types.Value;
 using SECData = CWTools.Games.ScriptedEffectComputedData;
 
+using static Program;
 
-static void Log(string message) =>
-	Console.WriteLine("[Log] " + message);
-static void Warn(string message) =>
-	Console.WriteLine("[Warn] " + message);
 
 Stopwatch timer = Stopwatch.StartNew();
 // Add support for codepage 1252, used by CWTools
@@ -454,6 +451,11 @@ public class Tech(
 
 		Tech tech = new(vanilla, area, tier, categories, levels, dangerous, rare, requires, []);
 		foreach (CWNode swapNode in node.Childs("technology_swap")) {
+			if (OptionModule.IsNone(swapNode.Tag("name"))) {
+				Error($"Tech {node.Key} has an unnamed swap, skipping it");
+				continue;
+			}
+
 			tech.Swaps[swapNode.Tag("name").Value.ToRawString()]
 				= TechSwap.Parse(swapNode, cwComparer, tech);
 		}
@@ -510,6 +512,13 @@ partial class Program {
 		RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant
 	)]
 	private static partial Regex RegexLocReference();
+
+	public static void Log(string message) =>
+		Console.WriteLine("[Log] " + message);
+	public static void Warn(string message) =>
+		Console.WriteLine("[Warn] " + message);
+	public static void Error(string message) =>
+		Console.WriteLine("[Error] " + message);
 }
 
 public class CWComparer(List<WorkspaceDirectoryInput> inputs) : IComparer<CWNode>, IComparer<CWTools.Localisation.Entry>, IComparer<CWTools.Utilities.Position.range> {
