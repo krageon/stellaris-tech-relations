@@ -22,6 +22,12 @@ using CWNode = CWTools.Process.Node;
 using CWValue = CWTools.Parser.Types.Value;
 using SECData = CWTools.Games.ScriptedEffectComputedData;
 
+
+static void Log(string message) =>
+	Console.WriteLine("[Log] " + message);
+static void Warn(string message) =>
+	Console.WriteLine("[Warn] " + message);
+
 Stopwatch timer = Stopwatch.StartNew();
 // Add support for codepage 1252, used by CWTools
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -41,6 +47,11 @@ try {
 }
 
 outDir.Create();
+
+if (options.ModPaths == null) {
+	Warn("Mod list is empty");
+	options.ModPaths = [];
+}
 
 bool hasMods = options.ModPaths.Count > 0;
 List<WorkspaceDirectoryInput> resourceDirs = [
@@ -102,7 +113,7 @@ var game = (GameObject<SECData, STLLookup>) typeof(CWTools.Games.Stellaris.STLGa
 
 EntitySet<SECData> entities = new(game.Resources.AllEntities.Invoke(null));
 
-Console.WriteLine("Loaded game data");
+Log("Loaded game data");
 
 #endregion
 
@@ -153,7 +164,7 @@ foreach ((string id, Tech tech) in techs) {
 	}
 }
 
-Console.WriteLine($"Analyzed {techs.Count} technologies");
+Log($"Analyzed {techs.Count} technologies");
 
 #endregion
 
@@ -183,7 +194,7 @@ Dictionary<Lang, Dictionary<string, Lazy<string>>> locs = game.LocalisationManag
 			)
 	);
 
-Console.WriteLine("Loaded localization");
+Log("Loaded localization");
 
 #endregion
 
@@ -302,7 +313,7 @@ foreach ((string id, Tech tech) in techs) {
 	}
 }
 
-Console.WriteLine($"Generated {generatedLocs.Sum(i => i.Value.Count)} localization entries");
+Log($"Generated {generatedLocs.Sum(i => i.Value.Count)} localization entries");
 
 IYamlSerializer serializer = new YamlSerializerBuilder()
 	.WithDefaultScalarStyle(YamlDotNet.Core.ScalarStyle.DoubleQuoted)
@@ -330,11 +341,11 @@ foreach ((string lang, StringDict loc) in generatedLocs) {
 	);
 }
 
-Console.WriteLine($"Wrote {generatedLocs.Count} language files");
+Log($"Wrote {generatedLocs.Count} language files");
 
 #endregion
 
-Console.WriteLine($"Finished in {timer.Elapsed}");
+Log($"Finished in {timer.Elapsed}");
 
 
 #region Data models
