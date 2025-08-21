@@ -287,7 +287,14 @@ foreach ((string id, Tech tech) in techs) {
 				}
 
 				if (!loc.TryGetValue(swapKey, out Lazy<string>? desc)) {
-					desc = loc[key];
+					if (!loc.TryGetValue(key, out desc)) {
+						desc = new(swapKey);
+						if (key == swapKey) {
+							Warn($"Localization entry of {key} not found");
+						} else {
+							Warn($"Localization entry of both {swapKey} and {key} not found");
+						}
+					}
 				}
 
 				string descVal = desc.Value;
