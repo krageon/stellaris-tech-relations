@@ -229,6 +229,9 @@ foreach ((string id, Tech tech) in techs) {
 	sb.Append($"{LocConsts.RParen}§!");
 
 	void BuildRelatedTechString(string techId, int indent) {
+		if (!techs.ContainsKey(techId)) {
+			return;
+		}
 		Tech tech = techs[techId];
 
 		sb.Append("\n$");
